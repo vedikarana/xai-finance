@@ -32,6 +32,12 @@ from models.ml_models import (
     train_random_forest, train_xgboost, train_lstm,
     evaluate_model, prepare_lstm_data,
 )
+from utils.robo_advisor import (
+    RISK_PROFILES, STOCK_UNIVERSE, parse_portfolio_csv,
+    analyse_uploaded_portfolio, design_portfolio,
+    plot_sector_pie, plot_allocation_bar, plot_risk_radar,
+    generate_portfolio_csv,
+)
 from utils.portfolio_xai import (
     build_portfolio, aggregate_portfolio_shap, portfolio_signal_table,
     plot_portfolio_shap_bar, plot_portfolio_heatmap,
@@ -261,92 +267,166 @@ st.markdown("""
 # Exchange & Currency Config
 # ─────────────────────────────────────────────────────────────────────────────
 
+# ── Global ticker search: any valid yfinance ticker works ──────────────────
 EXCHANGES = {
-    "🇮🇳  India (NSE/BSE)": {
+    "🇮🇳  India (NSE)": {
         "currency": "₹", "currency_name": "INR", "flag": "🇮🇳",
         "stocks": {
-            "Reliance Industries": "RELIANCE.NS",
-            "TCS":                 "TCS.NS",
-            "Infosys":             "INFY.NS",
-            "HDFC Bank":           "HDFCBANK.NS",
-            "Wipro":               "WIPRO.NS",
-            "ICICI Bank":          "ICICIBANK.NS",
-            "Bajaj Finance":       "BAJFINANCE.NS",
-            "HCL Technologies":    "HCLTECH.NS",
-            "Adani Ports":         "ADANIPORTS.NS",
-            "SBI":                 "SBIN.NS",
+            "Reliance Industries": "RELIANCE.NS", "TCS": "TCS.NS",
+            "Infosys": "INFY.NS", "HDFC Bank": "HDFCBANK.NS",
+            "Wipro": "WIPRO.NS", "ICICI Bank": "ICICIBANK.NS",
+            "Bajaj Finance": "BAJFINANCE.NS", "HCL Tech": "HCLTECH.NS",
+            "Adani Ports": "ADANIPORTS.NS", "SBI": "SBIN.NS",
+            "Maruti Suzuki": "MARUTI.NS", "Sun Pharma": "SUNPHARMA.NS",
+            "Titan": "TITAN.NS", "Asian Paints": "ASIANPAINT.NS",
+            "Hindustan Unilever": "HINDUNILVR.NS", "Kotak Bank": "KOTAKBANK.NS",
+            "L&T": "LT.NS", "Axis Bank": "AXISBANK.NS",
+            "Dr Reddy": "DRREDDY.NS", "Nestle India": "NESTLEIND.NS",
+            "ITC": "ITC.NS", "ONGC": "ONGC.NS", "NTPC": "NTPC.NS",
+            "Power Grid": "POWERGRID.NS", "Tech Mahindra": "TECHM.NS",
+            "M&M": "M&M.NS", "JSW Steel": "JSWSTEEL.NS",
+            "Tata Motors": "TATAMOTORS.NS", "Tata Steel": "TATASTEEL.NS",
+            "UltraTech Cement": "ULTRACEMCO.NS",
+        },
+    },
+    "🇮🇳  India (BSE)": {
+        "currency": "₹", "currency_name": "INR", "flag": "🇮🇳",
+        "stocks": {
+            "Reliance (BSE)": "500325.BO", "TCS (BSE)": "532540.BO",
+            "Infosys (BSE)": "500209.BO", "HDFC Bank (BSE)": "500180.BO",
+            "Wipro (BSE)": "507685.BO", "ICICI Bank (BSE)": "532174.BO",
+            "SBI (BSE)": "500112.BO", "ITC (BSE)": "500875.BO",
+            "Tata Motors (BSE)": "500570.BO", "Bajaj Auto (BSE)": "532977.BO",
         },
     },
     "🇺🇸  USA (NYSE/NASDAQ)": {
         "currency": "$", "currency_name": "USD", "flag": "🇺🇸",
         "stocks": {
-            "Apple":     "AAPL",
-            "Microsoft": "MSFT",
-            "Google":    "GOOGL",
-            "Amazon":    "AMZN",
-            "NVIDIA":    "NVDA",
-            "Tesla":     "TSLA",
-            "Meta":      "META",
-            "Netflix":   "NFLX",
-            "JPMorgan":  "JPM",
-            "Coca-Cola": "KO",
+            "Apple": "AAPL", "Microsoft": "MSFT", "Google": "GOOGL",
+            "Amazon": "AMZN", "NVIDIA": "NVDA", "Tesla": "TSLA",
+            "Meta": "META", "Netflix": "NFLX", "JPMorgan": "JPM",
+            "Coca-Cola": "KO", "Walt Disney": "DIS", "Visa": "V",
+            "Mastercard": "MA", "Salesforce": "CRM", "Adobe": "ADBE",
+            "Intel": "INTC", "AMD": "AMD", "Qualcomm": "QCOM",
+            "Broadcom": "AVGO", "Oracle": "ORCL", "Cisco": "CSCO",
+            "IBM": "IBM", "Goldman Sachs": "GS", "Morgan Stanley": "MS",
+            "Bank of America": "BAC", "Wells Fargo": "WFC",
+            "Johnson & Johnson": "JNJ", "Pfizer": "PFE", "UnitedHealth": "UNH",
+            "Exxon Mobil": "XOM", "Chevron": "CVX", "Boeing": "BA",
+            "Caterpillar": "CAT", "3M": "MMM", "Nike": "NKE",
+            "Starbucks": "SBUX", "McDonald's": "MCD", "Walmart": "WMT",
+            "Target": "TGT", "Home Depot": "HD", "Costco": "COST",
+            "Berkshire Hathaway": "BRK-B", "Palantir": "PLTR",
+            "Snowflake": "SNOW", "Datadog": "DDOG", "CrowdStrike": "CRWD",
+            "Uber": "UBER", "Airbnb": "ABNB", "Shopify": "SHOP",
+            "Spotify": "SPOT", "Twitter/X": "X", "Rivian": "RIVN",
         },
     },
     "🇯🇵  Japan (TSE)": {
         "currency": "¥", "currency_name": "JPY", "flag": "🇯🇵",
         "stocks": {
-            "Toyota":      "7203.T",
-            "Sony":        "6758.T",
-            "SoftBank":    "9984.T",
-            "Honda":       "7267.T",
-            "Keyence":     "6861.T",
-            "Mitsubishi":  "8058.T",
-            "Nintendo":    "7974.T",
-            "Fast Retailing": "9983.T",
+            "Toyota": "7203.T", "Sony": "6758.T", "SoftBank": "9984.T",
+            "Honda": "7267.T", "Keyence": "6861.T", "Mitsubishi": "8058.T",
+            "Nintendo": "7974.T", "Fast Retailing": "9983.T",
+            "Panasonic": "6752.T", "Canon": "7751.T", "Hitachi": "6501.T",
+            "Fujitsu": "6702.T", "NTT": "9432.T", "Sharp": "6753.T",
+            "Bridgestone": "5108.T", "Olympus": "7733.T",
         },
     },
     "🇸🇬  Singapore (SGX)": {
         "currency": "S$", "currency_name": "SGD", "flag": "🇸🇬",
         "stocks": {
-            "DBS Group":    "D05.SI",
-            "OCBC Bank":    "O39.SI",
-            "UOB":          "U11.SI",
-            "Singapore Airlines": "C6L.SI",
-            "CapitaLand":   "9CI.SI",
-            "Keppel Corp":  "BN4.SI",
+            "DBS Group": "D05.SI", "OCBC Bank": "O39.SI", "UOB": "U11.SI",
+            "Singapore Airlines": "C6L.SI", "CapitaLand": "9CI.SI",
+            "Keppel Corp": "BN4.SI", "Wilmar Intl": "F34.SI",
+            "Genting Singapore": "G13.SI", "Jardine Matheson": "J36.SI",
+            "ST Engineering": "S63.SI", "ComfortDelGro": "C52.SI",
+        },
+    },
+    "🇨🇳  China (HK-listed)": {
+        "currency": "HK$", "currency_name": "HKD", "flag": "🇨🇳",
+        "stocks": {
+            "Tencent": "0700.HK", "Alibaba HK": "9988.HK",
+            "Meituan": "3690.HK", "JD.com HK": "9618.HK",
+            "NetEase HK": "9999.HK", "Xiaomi": "1810.HK",
+            "BYD HK": "1211.HK", "CNOOC": "0883.HK",
+            "China Mobile": "0941.HK", "ICBC": "1398.HK",
+            "Ping An": "2318.HK", "Baidu HK": "9888.HK",
+        },
+    },
+    "🇨🇳  China (US-listed ADR)": {
+        "currency": "$", "currency_name": "USD", "flag": "🇨🇳",
+        "stocks": {
+            "Alibaba ADR": "BABA", "JD.com ADR": "JD",
+            "Baidu ADR": "BIDU", "NIO ADR": "NIO",
+            "PDD Holdings": "PDD", "Li Auto": "LI",
+            "Xpeng": "XPEV", "NetEase ADR": "NTES",
+            "Trip.com": "TCOM", "iQIYI": "IQ",
         },
     },
     "🇬🇧  UK (LSE)": {
         "currency": "£", "currency_name": "GBP", "flag": "🇬🇧",
         "stocks": {
-            "HSBC":       "HSBA.L",
-            "BP":         "BP.L",
-            "Unilever":   "ULVR.L",
-            "AstraZeneca":"AZN.L",
-            "Shell":      "SHEL.L",
-            "Barclays":   "BARC.L",
+            "HSBC": "HSBA.L", "BP": "BP.L", "Unilever": "ULVR.L",
+            "AstraZeneca": "AZN.L", "Shell": "SHEL.L", "Barclays": "BARC.L",
+            "GSK": "GSK.L", "Vodafone": "VOD.L", "Rolls-Royce": "RR.L",
+            "Diageo": "DGE.L", "Glencore": "GLEN.L", "Rio Tinto": "RIO.L",
+            "BT Group": "BT-A.L", "Lloyds Bank": "LLOY.L",
         },
     },
     "🇩🇪  Germany (XETRA)": {
         "currency": "€", "currency_name": "EUR", "flag": "🇩🇪",
         "stocks": {
-            "SAP":           "SAP.DE",
-            "Siemens":       "SIE.DE",
-            "Volkswagen":    "VOW3.DE",
-            "BMW":           "BMW.DE",
-            "Deutsche Bank": "DBK.DE",
-            "Bayer":         "BAYN.DE",
+            "SAP": "SAP.DE", "Siemens": "SIE.DE", "Volkswagen": "VOW3.DE",
+            "BMW": "BMW.DE", "Deutsche Bank": "DBK.DE", "Bayer": "BAYN.DE",
+            "Adidas": "ADS.DE", "BASF": "BAS.DE", "Allianz": "ALV.DE",
+            "Deutsche Telekom": "DTE.DE", "Mercedes-Benz": "MBG.DE",
+            "Infineon": "IFX.DE", "Deutsche Post": "DHL.DE",
         },
     },
     "🇭🇰  Hong Kong (HKEX)": {
         "currency": "HK$", "currency_name": "HKD", "flag": "🇭🇰",
         "stocks": {
-            "HSBC HK":      "0005.HK",
-            "AIA Group":    "1299.HK",
-            "Alibaba HK":   "9988.HK",
-            "Tencent":      "0700.HK",
-            "Meituan":      "3690.HK",
+            "HSBC HK": "0005.HK", "AIA Group": "1299.HK",
+            "Alibaba HK": "9988.HK", "Tencent": "0700.HK",
+            "Meituan": "3690.HK", "CK Hutchison": "0001.HK",
+            "Sun Hung Kai": "0016.HK", "MTR Corp": "0066.HK",
+            "Hang Seng Bank": "0011.HK", "CLP Holdings": "0002.HK",
         },
+    },
+    "🇰🇷  South Korea (KRX)": {
+        "currency": "₩", "currency_name": "KRW", "flag": "🇰🇷",
+        "stocks": {
+            "Samsung Electronics": "005930.KS", "SK Hynix": "000660.KS",
+            "LG Electronics": "066570.KS", "Hyundai Motor": "005380.KS",
+            "POSCO": "005490.KS", "Kakao": "035720.KS",
+            "Naver": "035420.KS", "LG Chem": "051910.KS",
+            "Kia Motors": "000270.KS", "SK Telecom": "017670.KS",
+        },
+    },
+    "🇦🇺  Australia (ASX)": {
+        "currency": "A$", "currency_name": "AUD", "flag": "🇦🇺",
+        "stocks": {
+            "BHP Group": "BHP.AX", "Commonwealth Bank": "CBA.AX",
+            "CSL": "CSL.AX", "ANZ Bank": "ANZ.AX",
+            "Westpac": "WBC.AX", "NAB": "NAB.AX",
+            "Macquarie": "MQG.AX", "Wesfarmers": "WES.AX",
+            "Woolworths": "WOW.AX", "Rio Tinto ASX": "RIO.AX",
+            "Fortescue": "FMG.AX", "Woodside": "WDS.AX",
+        },
+    },
+    "🇧🇷  Brazil (B3)": {
+        "currency": "R$", "currency_name": "BRL", "flag": "🇧🇷",
+        "stocks": {
+            "Petrobras": "PETR4.SA", "Vale": "VALE3.SA",
+            "Itaú Unibanco": "ITUB4.SA", "Bradesco": "BBDC4.SA",
+            "Ambev": "ABEV3.SA", "Embraer": "EMBR3.SA",
+            "Magazine Luiza": "MGLU3.SA", "WEG": "WEGE3.SA",
+        },
+    },
+    "🌐  Custom Ticker": {
+        "currency": "$", "currency_name": "USD", "flag": "🌐",
+        "stocks": {"Enter ticker manually below": "CUSTOM"},
     },
 }
 
@@ -730,7 +810,7 @@ if not S["trained"]:
     st.stop()
 
 # ── Tabs ──
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs([
     "📊 Stock Data",
     "🤖 Model Performance",
     "🔍 SHAP Explanations",
@@ -740,6 +820,7 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
     "🔮 Counterfactuals",
     "📈 Backtesting",
     "💼 Portfolio XAI",
+    "🤖 Robo-Advisor",
 ])
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -1741,3 +1822,305 @@ with tab9:
     st.pyplot(plot_return_correlation(pdata), use_container_width=True)
     plt.close("all")
     st.markdown('</div>', unsafe_allow_html=True)
+
+# ──────────────────────────────────────────────────────────────────────────────
+# TAB 10 — Robo-Advisor & Portfolio Designer
+# ──────────────────────────────────────────────────────────────────────────────
+with tab10:
+    st.markdown("<div class='groww-header'>🤖 Robo-Advisor & Portfolio Designer</div>", unsafe_allow_html=True)
+    st.markdown("<div class='groww-subtext'>Upload your portfolio for AI analysis, or let the AI design a new portfolio tailored to your risk tolerance, capital and time horizon.</div>", unsafe_allow_html=True)
+
+    robo_tab1, robo_tab2 = st.tabs(["📂 Analyse My Portfolio", "✨ Design New Portfolio"])
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # SUB-TAB A — Analyse uploaded portfolio
+    # ══════════════════════════════════════════════════════════════════════════
+    with robo_tab1:
+        st.markdown("""
+        <div class='insight-box'>
+        <div class='title'>📖 How this works</div>
+        Upload a CSV of your holdings → AI trains on each stock → gives you
+        <b>BUY MORE / HOLD / SELL</b> recommendation per stock based on both
+        the AI signal AND your current profit/loss position.
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("**CSV format required:**")
+        sample_csv = "Ticker,Shares,Avg_Buy_Price\nRELIANCE.NS,10,2500\nTCS.NS,5,3800\nAAPL,8,175\n"
+        st.code(sample_csv, language="csv")
+        st.download_button("⬇️ Download sample CSV", sample_csv,
+                           file_name="sample_portfolio.csv", mime="text/csv")
+
+        uploaded = st.file_uploader("Upload your portfolio CSV", type=["csv"], key="port_upload")
+
+        if uploaded:
+            try:
+                port_df = parse_portfolio_csv(uploaded)
+                st.markdown(f"✅ **{len(port_df)} stocks detected**")
+                st.dataframe(port_df, hide_index=True, use_container_width=True)
+
+                up_currency = st.selectbox("Your portfolio currency",
+                                           ["₹ INR", "$ USD", "¥ JPY", "£ GBP", "€ EUR",
+                                            "HK$ HKD", "S$ SGD", "A$ AUD"],
+                                           key="up_currency")
+                cur_sym = up_currency.split()[0]
+
+                if st.button("🔍 Analyse My Portfolio", type="primary", key="run_analyse"):
+                    prog2 = st.progress(0, "Starting analysis…")
+                    status2 = st.empty()
+
+                    def _p2(i, n, t):
+                        prog2.progress(int(i/n*95), f"Analysing {t} ({i+1}/{n})…")
+                        status2.markdown(f"<div class='info-box'>⏳ Processing <b>{t}</b>…</div>",
+                                         unsafe_allow_html=True)
+
+                    result_df = analyse_uploaded_portfolio(port_df, progress_cb=_p2)
+                    prog2.progress(100, "✅ Done!")
+                    status2.empty()
+
+                    st.session_state["analysed_portfolio"] = result_df
+
+            except Exception as e:
+                st.error(f"❌ {e}")
+
+        if "analysed_portfolio" in st.session_state and st.session_state["analysed_portfolio"] is not None:
+            rdf = st.session_state["analysed_portfolio"]
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("<div class='groww-header' style='font-size:1.1rem'>📋 AI Recommendation per Stock</div>", unsafe_allow_html=True)
+
+            # colour-code the recommendation column
+            def _colour(val):
+                if "SELL" in str(val) and "🔴" in str(val):
+                    return "background-color:#fef2f2; color:#b91c1c"
+                if "🟢" in str(val):
+                    return "background-color:#f0fdf4; color:#15803d"
+                if "🟡" in str(val):
+                    return "background-color:#fffbeb; color:#92400e"
+                return ""
+
+            styled = rdf.style.applymap(_colour, subset=["Recommendation"])
+            st.dataframe(styled, hide_index=True, use_container_width=True)
+
+            # Summary counts
+            sells  = rdf["Recommendation"].str.contains("🔴").sum()
+            holds  = rdf["Recommendation"].str.contains("⚪|⏸️").sum()
+            adds   = rdf["Recommendation"].str.contains("🟢").sum()
+            yellows= rdf["Recommendation"].str.contains("🟡").sum()
+
+            cs = st.columns(4)
+            for col, lbl, val, clr in [
+                (cs[0], "Strong SELL", sells,   "#dc2626"),
+                (cs[1], "Consider",    yellows,  "#f59e0b"),
+                (cs[2], "Hold / Add",  adds,     "#00916e"),
+                (cs[3], "Hold (flat)", holds,    "#6366f1"),
+            ]:
+                col.markdown(
+                    f'<div style="background:#ffffff;border:1.5px solid #e8eaf0;border-radius:12px;'
+                    f'padding:14px;text-align:center">'
+                    f'<div style="font-size:0.72rem;color:#9ca3af;text-transform:uppercase;'
+                    f'letter-spacing:1px;font-weight:600;margin-bottom:6px">{lbl}</div>'
+                    f'<div style="font-size:1.8rem;font-weight:800;color:{clr}">{val}</div>'
+                    f'</div>', unsafe_allow_html=True)
+
+            # Sector breakdown of uploaded portfolio
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("<div class='groww-header' style='font-size:1.1rem'>🥧 Sector Breakdown of Your Portfolio</div>", unsafe_allow_html=True)
+            sec_counts = rdf.groupby("Sector").size().to_dict()
+            col_p, col_t = st.columns([1, 1])
+            with col_p:
+                st.markdown('<div class="chart-wrap">', unsafe_allow_html=True)
+                st.pyplot(plot_sector_pie(sec_counts, "Your portfolio sectors"), use_container_width=True)
+                plt.close("all")
+                st.markdown('</div>', unsafe_allow_html=True)
+            with col_t:
+                st.markdown("""
+                <div class='insight-box' style='margin-top:8px'>
+                <div class='title'>📖 Is your portfolio diversified?</div>
+                Ideally no single sector should exceed 35% of your portfolio.
+                High concentration in one sector means one bad news event
+                could hurt your entire portfolio at once.
+                </div>
+                """, unsafe_allow_html=True)
+                sec_df = pd.DataFrame(list(sec_counts.items()),
+                                      columns=["Sector", "Stocks"])
+                sec_df["Share %"] = (sec_df["Stocks"] / sec_df["Stocks"].sum() * 100).round(1)
+                st.dataframe(sec_df, hide_index=True, use_container_width=True)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # SUB-TAB B — Design new portfolio
+    # ══════════════════════════════════════════════════════════════════════════
+    with robo_tab2:
+        st.markdown("""
+        <div class='insight-box'>
+        <div class='title'>📖 How portfolio design works</div>
+        Tell us your <b>capital, risk appetite and time horizon</b> →
+        AI scores 15–20 stocks from your chosen market using RF + XGBoost signals,
+        1-year momentum, volatility, and sector diversification rules →
+        outputs an optimised allocation you can download and act on.
+        </div>
+        """, unsafe_allow_html=True)
+
+        # ── Inputs ────────────────────────────────────────────────────────────
+        col1, col2 = st.columns(2)
+        with col1:
+            invest_capital = st.number_input("💰 Total investment amount",
+                                              min_value=1000, max_value=100_000_000,
+                                              value=100_000, step=1000, key="invest_cap")
+            invest_currency = st.selectbox("Currency",
+                                            ["₹ INR","$ USD","£ GBP","€ EUR",
+                                             "¥ JPY","HK$ HKD","S$ SGD","A$ AUD"],
+                                            key="invest_cur")
+            invest_market = st.selectbox("Market to invest in",
+                                          ["India","USA","Global"], key="invest_mkt")
+
+        with col2:
+            risk_choice = st.selectbox("Risk tolerance", list(RISK_PROFILES.keys()),
+                                        index=1, key="risk_choice")
+            time_horizon = st.slider("Investment time horizon (years)",
+                                      1, 20, 5, key="time_horizon")
+            st.markdown(f"""
+            <div style='background:#f7f8fa;border:1.5px solid #e8eaf0;
+            border-radius:10px;padding:12px;margin-top:8px;font-size:0.85rem;color:#374151'>
+            <b>{risk_choice.split()[0]}</b>: {RISK_PROFILES[risk_choice]['description']}<br>
+            Target return: <b>{RISK_PROFILES[risk_choice]['target_return']}</b> ·
+            Volatility: <b>{RISK_PROFILES[risk_choice]['volatility']}</b>
+            </div>
+            """, unsafe_allow_html=True)
+
+        cur_sym2 = invest_currency.split()[0]
+
+        # Risk radar
+        st.markdown("<br>", unsafe_allow_html=True)
+        rcol1, rcol2 = st.columns([1, 2])
+        with rcol1:
+            st.markdown('<div class="chart-wrap">', unsafe_allow_html=True)
+            st.pyplot(plot_risk_radar(risk_choice), use_container_width=True)
+            plt.close("all")
+            st.markdown('</div>', unsafe_allow_html=True)
+        with rcol2:
+            profile_data = RISK_PROFILES[risk_choice]
+            st.markdown(f"""
+            <div class='insight-box'>
+            <div class='title'>📊 Your Profile Summary</div>
+            <b>Equity allocation:</b> {profile_data['equity_pct']*100:.0f}%
+            (stocks) + {profile_data['bond_pct']*100:.0f}% (bonds/cash)<br>
+            <b>Max drawdown tolerance:</b> {profile_data['max_dd_tolerance']*100:.0f}%<br>
+            <b>Preferred sectors:</b> {', '.join(profile_data['preferred_sectors'])}<br>
+            <b>Min stocks in portfolio:</b> {profile_data['min_stocks']}<br>
+            <b>Investment amount in equities:</b>
+            {cur_sym2}{invest_capital * profile_data['equity_pct']:,.0f}
+            </div>
+            """, unsafe_allow_html=True)
+
+        design_btn = st.button("✨ Design My Portfolio", type="primary",
+                                key="design_btn", use_container_width=False)
+
+        if "designed_portfolio" not in st.session_state:
+            st.session_state["designed_portfolio"] = None
+
+        if design_btn:
+            prog3 = st.progress(0, "Scoring stocks…")
+            status3 = st.empty()
+
+            def _p3(i, n, t):
+                prog3.progress(int(i/n*90), f"Evaluating {t} ({i+1}/{n})…")
+                status3.markdown(f"<div class='info-box'>⏳ Scoring <b>{t}</b>…</div>",
+                                  unsafe_allow_html=True)
+
+            result = design_portfolio(
+                capital=invest_capital,
+                risk_profile=risk_choice,
+                time_horizon_years=time_horizon,
+                market=invest_market,
+                currency=cur_sym2,
+                progress_cb=_p3,
+            )
+            prog3.progress(100, "✅ Portfolio designed!")
+            status3.empty()
+
+            if "error" in result:
+                st.error(f"❌ {result['error']}")
+            else:
+                st.session_state["designed_portfolio"] = result
+                st.success("✅ Portfolio designed! Scroll down to see your allocation.")
+
+        dp = st.session_state.get("designed_portfolio")
+        if dp and "error" not in dp:
+            alloc_df     = dp["allocation"]
+            metrics      = dp["metrics"]
+            sec_wts      = dp["sector_weights"]
+
+            # ── Metrics row ────────────────────────────────────────────────
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("<div class='groww-header' style='font-size:1.1rem'>📈 Portfolio Metrics</div>", unsafe_allow_html=True)
+
+            metric_items = [(k, v) for k, v in metrics.items() if k != "Horizon Note"]
+            mcols = st.columns(4)
+            colors_m = {
+                "Expected Return (1Y)": "#00916e",
+                "Portfolio Volatility":  "#f59e0b",
+                "Sharpe Score":          "#6366f1",
+                "Equity Allocation":     "#00916e",
+                "Bond/Cash Allocation":  "#374151",
+                "Target Return (profile)":"#00916e",
+                "Stocks Selected":        "#374151",
+                "Sectors Covered":        "#6366f1",
+            }
+            for idx, (k, v) in enumerate(metric_items):
+                mcol = mcols[idx % 4]
+                clr  = colors_m.get(k, "#374151")
+                mcol.markdown(
+                    f'<div style="background:#ffffff;border:1.5px solid #e8eaf0;'
+                    f'border-radius:10px;padding:12px 8px;text-align:center;margin-bottom:8px">'
+                    f'<div style="font-size:0.65rem;color:#9ca3af;text-transform:uppercase;'
+                    f'letter-spacing:0.8px;font-weight:600;margin-bottom:4px">{k}</div>'
+                    f'<div style="font-size:1.2rem;font-weight:800;color:{clr}">{v}</div>'
+                    f'</div>', unsafe_allow_html=True)
+
+            # Horizon note
+            st.markdown(f"""
+            <div class='insight-box'>
+            <div class='title'>⏳ Time Horizon Advice ({time_horizon} years)</div>
+            {metrics['Horizon Note']}
+            </div>
+            """, unsafe_allow_html=True)
+
+            # ── Allocation table ───────────────────────────────────────────
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("<div class='groww-header' style='font-size:1.1rem'>📋 Recommended Stock Allocation</div>", unsafe_allow_html=True)
+            st.dataframe(alloc_df, hide_index=True, use_container_width=True)
+
+            # ── Charts row ─────────────────────────────────────────────────
+            st.markdown("<br>", unsafe_allow_html=True)
+            ch1, ch2 = st.columns(2)
+            with ch1:
+                st.markdown("**Sector allocation**")
+                st.markdown('<div class="chart-wrap">', unsafe_allow_html=True)
+                st.pyplot(plot_sector_pie(sec_wts), use_container_width=True)
+                plt.close("all")
+                st.markdown('</div>', unsafe_allow_html=True)
+            with ch2:
+                st.markdown("**Stock weight allocation**")
+                st.markdown('<div class="chart-wrap">', unsafe_allow_html=True)
+                st.pyplot(plot_allocation_bar(alloc_df, cur_sym2), use_container_width=True)
+                plt.close("all")
+                st.markdown('</div>', unsafe_allow_html=True)
+
+            # ── Download ───────────────────────────────────────────────────
+            st.markdown("<br>", unsafe_allow_html=True)
+            csv_bytes = generate_portfolio_csv(alloc_df)
+            st.download_button(
+                "⬇️ Download Portfolio as CSV",
+                csv_bytes,
+                file_name=f"xai_portfolio_{risk_choice.split()[0].lower()}_{invest_market}.csv",
+                mime="text/csv",
+                type="primary",
+            )
+
+            st.markdown("""
+            <div class='warn-box'>
+            ⚠️ <b>Disclaimer:</b> This is an AI-generated suggestion based on historical data and model predictions.
+            It is <b>not financial advice</b>. Always consult a SEBI-registered investment advisor before investing.
+            Past performance does not guarantee future returns.
+            </div>
+            """, unsafe_allow_html=True)
