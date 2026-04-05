@@ -660,7 +660,10 @@ if run_btn:
         S["lstm_model"]  = lstm_model
         S["lstm_X_test"] = lstm_X_test
         S["lstm_y_test"] = lstm_y_test
-        S["lstm_metrics"] = evaluate_model(lstm_model, lstm_X_test, lstm_y_test, "lstm")
+        if lstm_model is not None:
+            S["lstm_metrics"] = evaluate_model(lstm_model, lstm_X_test, lstm_y_test, "lstm")
+        else:
+            S["lstm_metrics"] = {"accuracy": 0, "auc_roc": 0, "note": "LSTM disabled (tensorflow not installed)"}
         progress.progress(75, "🔍 Computing SHAP values (RF)…")
 
         # 7 — SHAP RF

@@ -21,6 +21,7 @@ warnings.filterwarnings("ignore")
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _get_keras():
+    """Returns keras — gracefully disabled if not installed."""
     try:
         import keras
         return keras
@@ -30,7 +31,7 @@ def _get_keras():
         import tensorflow as tf
         return tf.keras
     except ImportError:
-        raise ImportError("Run: pip install tensorflow")
+        return None  # LSTM disabled — tensorflow not installed
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -78,6 +79,8 @@ def prepare_lstm_data(X_train, X_test, y_train, y_test, timesteps=10):
 
 def build_lstm(input_shape):
     keras = _get_keras()
+    if keras is None:
+        return None
     model = keras.Sequential([
         keras.layers.Input(shape=input_shape),
         keras.layers.LSTM(64, return_sequences=True),
@@ -97,6 +100,11 @@ def build_lstm(input_shape):
 
 def train_lstm(X_train, y_train, X_test, y_test, timesteps=10, epochs=30):
     keras = _get_keras()
+    if keras is None:
+        # TensorFlow not installed — return dummy so app doesnt crash
+        Xtr, Xte, ytr, yte = prepare_lstm_data(X_train, X_test, y_train, y_test, timesteps)
+        return None, None, Xte, yte
+
     Xtr, Xte, ytr, yte = prepare_lstm_data(X_train, X_test, y_train, y_test, timesteps)
     model = build_lstm(input_shape=(timesteps, X_train.shape[1]))
 
