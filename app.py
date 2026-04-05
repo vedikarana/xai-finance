@@ -663,7 +663,12 @@ if run_btn:
         if lstm_model is not None:
             S["lstm_metrics"] = evaluate_model(lstm_model, lstm_X_test, lstm_y_test, "lstm")
         else:
-            S["lstm_metrics"] = {"accuracy": 0, "auc_roc": 0, "note": "LSTM disabled (tensorflow not installed)"}
+            S["lstm_metrics"] = {
+                "accuracy": 0, "auc": 0,
+                "report": {}, "confusion": [[0,0],[0,0]],
+                "y_pred": [], "y_prob": [],
+                "note": "LSTM disabled — tensorflow not installed on this server",
+            }
         progress.progress(75, "🔍 Computing SHAP values (RF)…")
 
         # 7 — SHAP RF
@@ -840,9 +845,9 @@ with tab2:
     lstm_m = S["lstm_metrics"]
 
     # ── Insight box ───────────────────────────────────────────────────
-    best_model = max([("Random Forest 🌲", rf_m["accuracy"]),
-                      ("XGBoost ⚡", xgb_m["accuracy"]),
-                      ("LSTM 🧠", lstm_m["accuracy"])], key=lambda x: x[1])
+    best_model = max([("Random Forest 🌲", rf_m.get("accuracy", 0)),
+                      ("XGBoost ⚡", xgb_m.get("accuracy", 0)),
+                      ("LSTM 🧠", lstm_m.get("accuracy", 0))], key=lambda x: x[1])
     st.markdown(f"""
     <div class='insight-box'>
     <div class='title'>🏆 Quick Summary</div>
@@ -859,8 +864,8 @@ with tab2:
         (col2, xgb_m,  "XGBoost",       "⚡", "Trees that learn from each other's mistakes"),
         (col3, lstm_m, "LSTM",          "🧠", "Deep learning with memory of past patterns"),
     ]:
-        acc_color = "#00916e" if m["accuracy"] >= 55 else "#dc2626"
-        auc_color = "#00916e" if m["auc"] >= 60 else "#dc2626"
+        acc_color = "#00916e" if m.get("accuracy", 0) >= 55 else "#dc2626"
+        auc_color = "#00916e" if m.get("auc", 0) >= 60 else "#dc2626"
         col.markdown(
             f'<div class="g-card">'
             f'<div style="font-size:1.6rem">{icon}</div>'
@@ -869,11 +874,11 @@ with tab2:
             f'<div style="display:flex; gap:12px">'
             f'<div style="flex:1; background:#f7f8fa; border-radius:10px; padding:10px; text-align:center">'
             f'<div style="font-size:0.7rem; color:#9ca3af; font-weight:600; text-transform:uppercase; letter-spacing:1px">Accuracy</div>'
-            f'<div style="font-size:1.6rem; font-weight:900; color:{acc_color}">{m["accuracy"]}%</div>'
+            f'<div style="font-size:1.6rem; font-weight:900; color:{acc_color}">{m.get("accuracy", 0)}%</div>'
             f'</div>'
             f'<div style="flex:1; background:#f7f8fa; border-radius:10px; padding:10px; text-align:center">'
             f'<div style="font-size:0.7rem; color:#9ca3af; font-weight:600; text-transform:uppercase; letter-spacing:1px">AUC-ROC</div>'
-            f'<div style="font-size:1.6rem; font-weight:900; color:{auc_color}">{m["auc"]}%</div>'
+            f'<div style="font-size:1.6rem; font-weight:900; color:{auc_color}">{m.get("auc", 0)}%</div>'
             f'</div>'
             f'</div>'
             f'</div>',
@@ -896,8 +901,8 @@ with tab2:
 
     comp_df = pd.DataFrame({
         "Model":    ["Random Forest 🌲", "XGBoost ⚡", "LSTM 🧠"],
-        "Accuracy": [rf_m["accuracy"], xgb_m["accuracy"], lstm_m["accuracy"]],
-        "AUC-ROC":  [rf_m["auc"],      xgb_m["auc"],      lstm_m["auc"]],
+        "Accuracy": [rf_m.get("accuracy", 0), xgb_m.get("accuracy", 0), lstm_m.get("accuracy", 0)],
+        "AUC-ROC":  [rf_m.get("auc", 0),      xgb_m.get("auc", 0),      lstm_m.get("auc", 0)],
     })
     fig_bar = px.bar(
         comp_df.melt(id_vars="Model", var_name="Metric", value_name="Score"),
@@ -935,13 +940,13 @@ with tab2:
     c1, c2, c3 = st.columns(3)
     with c1:
         st.markdown("**🌲 Random Forest**")
-        st.plotly_chart(confusion_heatmap(rf_m["confusion"], "Random Forest"), use_container_width=True)
+        st.plotly_chart(confusion_heatmap(rf_m.get("confusion", [[0,0],[0,0]]), "Random Forest"), use_container_width=True)
     with c2:
         st.markdown("**⚡ XGBoost**")
-        st.plotly_chart(confusion_heatmap(xgb_m["confusion"], "XGBoost"), use_container_width=True)
+        st.plotly_chart(confusion_heatmap(xgb_m.get("confusion", [[0,0],[0,0]]), "XGBoost"), use_container_width=True)
     with c3:
         st.markdown("**🧠 LSTM**")
-        st.plotly_chart(confusion_heatmap(lstm_m["confusion"], "LSTM"), use_container_width=True)
+        st.plotly_chart(confusion_heatmap(lstm_m.get("confusion", [[0,0],[0,0]]), "LSTM"), use_container_width=True)
 
     # ── Classification reports ────────────────────────────────────────
     st.markdown("<br>", unsafe_allow_html=True)
@@ -959,7 +964,7 @@ with tab2:
     for col, m, label in [(cr1, rf_m, "🌲 Random Forest"), (cr2, xgb_m, "⚡ XGBoost"), (cr3, lstm_m, "🧠 LSTM")]:
         with col:
             st.markdown(f"**{label}**")
-            rpt = m["report"]
+            rpt = m.get("report", {})
             rpt_df = pd.DataFrame({
                 "Prediction":  ["📉 DOWN", "📈 UP", "Overall"],
                 "Precision":   [round(rpt["0"]["precision"],3), round(rpt["1"]["precision"],3), "—"],
