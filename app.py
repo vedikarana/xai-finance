@@ -967,9 +967,10 @@ with tab2:
             rpt = m.get("report", {})
             rpt_df = pd.DataFrame({
                 "Prediction":  ["📉 DOWN", "📈 UP", "Overall"],
-                "Precision":   [round(rpt["0"]["precision"],3), round(rpt["1"]["precision"],3), "—"],
-                "Recall":      [round(rpt["0"]["recall"],3),    round(rpt["1"]["recall"],3),    "—"],
-                "F1 Score":    [round(rpt["0"]["f1-score"],3),  round(rpt["1"]["f1-score"],3),  round(rpt["accuracy"],3)],
+                # sklearn version-safe: try string keys then integer keys
+                "Precision":   [round((rpt.get("0") or rpt.get(0) or {}).get("precision",0),3), round((rpt.get("1") or rpt.get(1) or {}).get("precision",0),3), "—"],
+                "Recall":      [round((rpt.get("0") or rpt.get(0) or {}).get("recall",0),3),    round((rpt.get("1") or rpt.get(1) or {}).get("recall",0),3),    "—"],
+                "F1 Score":    [round((rpt.get("0") or rpt.get(0) or {}).get("f1-score",0),3),  round((rpt.get("1") or rpt.get(1) or {}).get("f1-score",0),3),  round(rpt.get("accuracy",0),3)],
             })
             st.dataframe(rpt_df, hide_index=True, use_container_width=True)
 
