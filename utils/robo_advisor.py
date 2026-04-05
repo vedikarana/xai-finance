@@ -195,17 +195,52 @@ def analyse_uploaded_portfolio(portfolio_df: pd.DataFrame,
             else:
                 signal = "⏸️ HOLD"
 
-            # final recommendation combining signal + P&L
-            if signal == "📉 SELL" and pl_pct < -5:
-                recommendation = "🔴 SELL — AI bearish + in loss"
-            elif signal == "📉 SELL" and pl_pct > 15:
-                recommendation = "🟡 CONSIDER SELLING — AI bearish but in profit"
-            elif signal == "📈 BUY MORE" and pl_pct > 0:
-                recommendation = "🟢 HOLD / ADD — AI bullish + in profit"
-            elif signal == "📈 BUY MORE" and pl_pct < 0:
-                recommendation = "🟡 HOLD — AI bullish but currently in loss"
+            # Compute factual reasons for recommendation
+            recent_return_5d = float((df["Close"].iloc[-1] - df["Close"].iloc[-5]) / df["Close"].iloc[-5] * 100) if len(df) > 5 else 0
+            vol_20d = float(df["Close"].pct_change().rolling(20).std().iloc[-1] * 100) if len(df) > 20 else 0
+
+            reasons = []
+
+            # AI signal reason
+            if avg_prob_up >= 0.65:
+                reasons.append(f"AI assigns {avg_prob_up*100:.0f}% probability of upward movement in next session")
+            elif avg_prob_down >= 0.65:
+                reasons.append(f"AI assigns {avg_prob_down*100:.0f}% probability of downward movement in next session")
             else:
-                recommendation = "⚪ HOLD — Insufficient confidence to act"
+                reasons.append(f"AI is uncertain ({avg_prob_up*100:.0f}% up / {avg_prob_down*100:.0f}% down probability)")
+
+            # 5-day momentum
+            if recent_return_5d > 3:
+                reasons.append(f"Stock has gained {recent_return_5d:.1f}% in the last 5 trading days — positive short-term momentum")
+            elif recent_return_5d < -3:
+                reasons.append(f"Stock has fallen {abs(recent_return_5d):.1f}% in the last 5 trading days — selling pressure present")
+
+            # volatility
+            if vol_20d > 3:
+                reasons.append(f"20-day volatility is elevated at {vol_20d:.1f}% — higher risk of sharp moves in either direction")
+
+            # P&L context
+            if buy_px > 0:
+                if pl_pct > 20:
+                    reasons.append(f"You are up {pl_pct:.1f}% from your entry — consider booking partial profits to lock in gains")
+                elif pl_pct < -10:
+                    reasons.append(f"You are down {abs(pl_pct):.1f}% from your entry — evaluate whether the fundamental thesis still holds")
+                elif 0 < pl_pct <= 20:
+                    reasons.append(f"Sitting on {pl_pct:.1f}% gain — holding is reasonable if long-term view is intact")
+
+            reason_text = "; ".join(reasons[:3])
+
+            # Final recommendation
+            if signal == "📉 SELL" and pl_pct < -5:
+                recommendation = f"🔴 SELL — {reason_text}"
+            elif signal == "📉 SELL" and pl_pct > 15:
+                recommendation = f"🟡 CONSIDER SELLING — {reason_text}"
+            elif signal == "📈 BUY MORE" and pl_pct > 0:
+                recommendation = f"🟢 HOLD / ADD — {reason_text}"
+            elif signal == "📈 BUY MORE" and pl_pct < 0:
+                recommendation = f"🟡 HOLD — {reason_text}"
+            else:
+                recommendation = f"⚪ HOLD — {reason_text}"
 
             results.append({
                 "Ticker":         ticker,

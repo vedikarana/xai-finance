@@ -1,8 +1,8 @@
 """
 ╔══════════════════════════════════════════════════════════════════════════╗
-║   XAI Finance — Explainable AI for Stock Market Prediction              ║
-║   Seminar Project by Vedika Rana (PRN: 1032233559)                      ║
-║   MIT-WPU | T.Y.B.Tech CSE (AIDS) | Semester VI (2025-26)              ║
+║   StockSense AI — Smart Stock Analysis with Clear Reasoning              ║
+║   Built by Vedika Rana — CFA L1 Candidate | SEBI Verified Advisor        ║
+║                                                                           ║
 ╚══════════════════════════════════════════════════════════════════════════╝
 
 Run:   streamlit run app.py
@@ -57,7 +57,7 @@ from explainers.xai_explainers import (
 # ─────────────────────────────────────────────────────────────────────────────
 
 st.set_page_config(
-    page_title="XAI Finance | Vedika Rana",
+    page_title="StockSense AI — Smart Stock Analysis",
     page_icon="📈",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -459,9 +459,9 @@ with st.sidebar:
     st.divider()
     st.markdown("#### ⚙️ Step 3 — Settings")
     PERIOD      = st.selectbox("📅 Period", ["1y", "2y", "3y", "5y"], index=1)
-    RF_TREES    = st.slider("🌲 RF Trees",        50, 500, 200, 50)
-    XGB_TREES   = st.slider("⚡ XGB Estimators",  50, 500, 200, 50)
-    LSTM_EPOCHS = st.slider("🧠 LSTM Epochs",     10, 60,  30,  5)
+    RF_TREES    = st.slider("🌲 Accuracy (Forest)",        50, 500, 200, 50)
+    XGB_TREES   = st.slider("⚡ Accuracy (Trend)",  50, 500, 200, 50)
+    LSTM_EPOCHS = st.slider("🧠 Memory Depth (AI)",     10, 60,  30,  5)
     SAMPLE_IDX  = st.slider("🔍 XAI Sample #",    0,  49,  0)
 
     st.divider()
@@ -469,11 +469,9 @@ with st.sidebar:
 
     st.divider()
     st.markdown("""
-    <div style='font-size:0.78rem; color:#6b7280; line-height:1.7'>
-    <b style='color:#9ca3af'>Student:</b> Vedika Rana<br>
-    <b style='color:#9ca3af'>PRN:</b> 1032233559<br>
-    <b style='color:#9ca3af'>Roll No:</b> 49 | Panel B<br>
-    <b style='color:#9ca3af'>MIT-WPU | AIDS Sem-VI</b>
+    <div style='font-size:0.78rem; color:#6b7280; line-height:1.8; padding:8px 0'>
+    <b style='color:#111827'>Vedika Rana</b><br>
+    <span style='color:#00b386; font-size:0.74rem'>CFA Level I Candidate &nbsp;|&nbsp; SEBI Verified Advisor</span>
     </div>
     """, unsafe_allow_html=True)
 
@@ -483,8 +481,8 @@ with st.sidebar:
 
 st.markdown("""
 <div class='groww-hero'>
-  <h1>📈 <span class='accent'>XAI</span> Finance Dashboard</h1>
-  <p>AI-powered stock predictions made simple — understand <b>why</b> the AI thinks the stock will go up or down</p>
+  <h1>📈 <span class='accent'>StockSense</span> AI</h1>
+  <p>Smart stock predictions with clear reasoning — know <b>exactly why</b> the AI thinks a stock will go UP or DOWN</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -719,19 +717,19 @@ if run_btn:
         S.update(dict(X_train=X_train, X_test=X_test,
                       y_train=y_train, y_test=y_test,
                       scaler=scaler, features=features))
-        progress.progress(30, "🌲 Training Random Forest…")
+        progress.progress(30, "🌲 Training Forest Predictor…")
 
         # 4 — Random Forest
         rf = train_random_forest(X_train, y_train, n_estimators=RF_TREES)
         S["rf"] = rf
         S["rf_metrics"] = evaluate_model(rf, X_test, y_test, "sklearn")
-        progress.progress(45, "⚡ Training XGBoost…")
+        progress.progress(45, "⚡ Training Trend Predictor…")
 
         # 5 — XGBoost
         xgb_model = train_xgboost(X_train, y_train, n_estimators=XGB_TREES)
         S["xgb_model"] = xgb_model
         S["xgb_metrics"] = evaluate_model(xgb_model, X_test, y_test, "xgb")
-        progress.progress(60, "🧠 Training LSTM (this may take ~30 s)…")
+        progress.progress(60, "🧠 Training Memory Predictor (takes ~30s)…")
 
         # 6 — LSTM
         lstm_model, lstm_history, lstm_X_test, lstm_y_test = train_lstm(
@@ -795,7 +793,7 @@ if not S["trained"]:
 
     col1, col2, col3 = st.columns(3)
     for col, icon, title, desc in [
-        (col1, "🤖", "4 AI Models + FinBERT", "RF, XGBoost, LSTM + News Sentiment model for research-grade accuracy"),
+        (col1, "🤖", "3 Smart AI Predictors", "Forest, Trend & Memory predictors analyse price patterns and news together"),
         (col2, "🔍", "4 XAI Methods", "SHAP, LIME, Counterfactuals & LSTM Attention explain every decision"),
         (col3, "🌍", "7 Global Markets", "India, USA, Japan, UK, Singapore, Germany & Hong Kong"),
     ]:
@@ -812,15 +810,15 @@ if not S["trained"]:
 # ── Tabs ──
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs([
     "📊 Stock Data",
-    "🤖 Model Performance",
-    "🔍 SHAP Explanations",
-    "🧩 LIME Explanations",
-    "📌 Feature Importance",
+    "📊 Prediction Results",
+    "🔍 Why This Prediction?",
+    "🧩 Today's Reasoning",
+    "📌 Key Signals",
     "📰 News Sentiment",
-    "🔮 Counterfactuals",
-    "📈 Backtesting",
-    "💼 Portfolio XAI",
-    "🤖 Robo-Advisor",
+    "🔮 What Would Change It?",
+    "📈 Strategy Performance",
+    "💼 My Portfolio",
+    "✨ Build My Portfolio",
 ])
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -926,9 +924,9 @@ with tab2:
     lstm_m = S["lstm_metrics"]
 
     # ── Insight box ───────────────────────────────────────────────────
-    best_model = max([("Random Forest 🌲", rf_m.get("accuracy", 0)),
-                      ("XGBoost ⚡", xgb_m.get("accuracy", 0)),
-                      ("LSTM 🧠", lstm_m.get("accuracy", 0))], key=lambda x: x[1])
+    best_model = max([("Forest Predictor 🌲", rf_m.get("accuracy", 0)),
+                      ("Trend Predictor ⚡", xgb_m.get("accuracy", 0)),
+                      ("Memory Predictor 🧠", lstm_m.get("accuracy", 0))], key=lambda x: x[1])
     st.markdown(f"""
     <div class='insight-box'>
     <div class='title'>🏆 Quick Summary</div>
@@ -941,9 +939,9 @@ with tab2:
     # ── Score cards ───────────────────────────────────────────────────
     col1, col2, col3 = st.columns(3)
     for col, m, name, icon, desc in [
-        (col1, rf_m,   "Random Forest", "🌲", "200 decision trees voting together"),
-        (col2, xgb_m,  "XGBoost",       "⚡", "Trees that learn from each other's mistakes"),
-        (col3, lstm_m, "LSTM",          "🧠", "Deep learning with memory of past patterns"),
+        (col1, rf_m,   "Forest Predictor", "🌲", "Analyses 200 different viewpoints and takes a majority vote"),
+        (col2, xgb_m,  "Trend Predictor", "⚡", "Learns from past mistakes to get smarter with each step"),
+        (col3, lstm_m, "Memory Predictor", "🧠", "Reads the last 10 days like a chart — remembers patterns over time"),
     ]:
         acc_color = "#00916e" if m.get("accuracy", 0) >= 55 else "#dc2626"
         auc_color = "#00916e" if m.get("auc", 0) >= 60 else "#dc2626"
@@ -981,7 +979,7 @@ with tab2:
     """, unsafe_allow_html=True)
 
     comp_df = pd.DataFrame({
-        "Model":    ["Random Forest 🌲", "XGBoost ⚡", "LSTM 🧠"],
+        "Model":    ["Forest Predictor 🌲", "Trend Predictor ⚡", "Memory Predictor 🧠"],
         "Accuracy": [rf_m.get("accuracy", 0), xgb_m.get("accuracy", 0), lstm_m.get("accuracy", 0)],
         "AUC-ROC":  [rf_m.get("auc", 0),      xgb_m.get("auc", 0),      lstm_m.get("auc", 0)],
     })
@@ -1020,14 +1018,14 @@ with tab2:
 
     c1, c2, c3 = st.columns(3)
     with c1:
-        st.markdown("**🌲 Random Forest**")
-        st.plotly_chart(confusion_heatmap(rf_m.get("confusion", [[0,0],[0,0]]), "Random Forest"), use_container_width=True)
+        st.markdown("**🌲 Forest Predictor**")
+        st.plotly_chart(confusion_heatmap(rf_m.get("confusion", [[0,0],[0,0]]), "Forest Predictor"), use_container_width=True)
     with c2:
-        st.markdown("**⚡ XGBoost**")
-        st.plotly_chart(confusion_heatmap(xgb_m.get("confusion", [[0,0],[0,0]]), "XGBoost"), use_container_width=True)
+        st.markdown("**⚡ Trend Predictor**")
+        st.plotly_chart(confusion_heatmap(xgb_m.get("confusion", [[0,0],[0,0]]), "Trend Predictor"), use_container_width=True)
     with c3:
-        st.markdown("**🧠 LSTM**")
-        st.plotly_chart(confusion_heatmap(lstm_m.get("confusion", [[0,0],[0,0]]), "LSTM"), use_container_width=True)
+        st.markdown("**🧠 Memory Predictor**")
+        st.plotly_chart(confusion_heatmap(lstm_m.get("confusion", [[0,0],[0,0]]), "Memory Predictor"), use_container_width=True)
 
     # ── Classification reports ────────────────────────────────────────
     st.markdown("<br>", unsafe_allow_html=True)
@@ -1042,7 +1040,7 @@ with tab2:
     """, unsafe_allow_html=True)
 
     cr1, cr2, cr3 = st.columns(3)
-    for col, m, label in [(cr1, rf_m, "🌲 Random Forest"), (cr2, xgb_m, "⚡ XGBoost"), (cr3, lstm_m, "🧠 LSTM")]:
+    for col, m, label in [(cr1, rf_m, "🌲 Forest Predictor"), (cr2, xgb_m, "⚡ Trend Predictor"), (cr3, lstm_m, "🧠 Memory Predictor")]:
         with col:
             st.markdown(f"**{label}**")
             rpt = m.get("report", {})
@@ -1072,8 +1070,8 @@ with tab3:
     </div>
     """, unsafe_allow_html=True)
 
-    model_choice = st.radio("Choose AI model to explain:", ["🌲 Random Forest", "⚡ XGBoost"], horizontal=True)
-    is_rf     = "Forest" in model_choice
+    model_choice = st.radio("Choose AI model to explain:", ["🌲 Forest Predictor", "⚡ Trend Predictor"], horizontal=True)
+    is_rf     = "Forest" in model_choice  # works for both old and new name
     shap_vals = S["shap_vals_rf"]  if is_rf else S["shap_vals_xgb"]
     X_shap    = S["shap_X_rf"]     if is_rf else S["shap_X_xgb"]
     X_test    = S["X_test"]
@@ -1120,7 +1118,7 @@ with tab3:
 
     with sub3:
         st.markdown(f"**Breaking down the AI's decision for Day #{SAMPLE_IDX} in our test data**")
-        model = S["rf"] if "Forest" in model_choice else S["xgb_model"]
+        model = S["rf"] if "Forest" in model_choice else S["xgb_model"]  # Forest = RF
         prob  = model.predict_proba(X_test[[SAMPLE_IDX]])[0]
         pred  = "📈 BUY (UP)" if prob[1] > 0.5 else "📉 SELL (DOWN)"
         conf  = max(prob) * 100
@@ -1158,7 +1156,7 @@ with tab4:
     </div>
     """, unsafe_allow_html=True)
 
-    lime_model_choice = st.radio("Choose model:", ["🌲 Random Forest", "⚡ XGBoost"], horizontal=True, key="lime_radio")
+    lime_model_choice = st.radio("Choose model:", ["🌲 Forest Predictor", "⚡ Trend Predictor"], horizontal=True, key="lime_radio")
     lime_model = S["rf"] if "Forest" in lime_model_choice else S["xgb_model"]
 
     prob_lime = lime_model.predict_proba(S["X_test"][[SAMPLE_IDX]])[0]
@@ -1239,7 +1237,7 @@ with tab5:
         so importance is averaged across all of them — making it very stable and reliable.
         </div>""", unsafe_allow_html=True)
         st.markdown('<div class="chart-wrap">', unsafe_allow_html=True)
-        fig = plot_feature_importance(S["rf"], S["features"], model_name="Random Forest")
+        fig = plot_feature_importance(S["rf"], S["features"], model_name="Forest Predictor")
         st.pyplot(fig, use_container_width=True)
         plt.close("all")
         st.markdown('</div>', unsafe_allow_html=True)
@@ -1253,7 +1251,7 @@ with tab5:
         Compare this with Random Forest above to see if both models agree on what matters!
         </div>""", unsafe_allow_html=True)
         st.markdown('<div class="chart-wrap">', unsafe_allow_html=True)
-        fig = plot_feature_importance(S["xgb_model"], S["features"], model_name="XGBoost")
+        fig = plot_feature_importance(S["xgb_model"], S["features"], model_name="Trend Predictor")
         st.pyplot(fig, use_container_width=True)
         plt.close("all")
         st.markdown('</div>', unsafe_allow_html=True)
